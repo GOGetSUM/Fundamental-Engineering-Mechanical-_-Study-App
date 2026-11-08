@@ -1,0 +1,12 @@
+FE Mechanical Study — Windows portable app
+
+1. Download FE-Mechanical-Study-Windows.zip from the GitHub Release.
+2. Right-click the ZIP and select Extract All.
+3. Open the FE-Mechanical-Study folder.
+4. Double-click FE-Mechanical-Study.exe.
+5. Keep the entire extracted folder together. The app needs its bundled files.
+
+No Python, pip, batch scripts, PowerShell, or installation is required.
+To create a desktop shortcut: right-click the .exe > Show more options > Send to > Desktop (create shortcut).
+
+The app is unsigned. Windows or antivirus software may warn about unfamiliar apps; do not bypass warnings without verifying the download and publisher. Obtain from a trusted repository and review its source.
