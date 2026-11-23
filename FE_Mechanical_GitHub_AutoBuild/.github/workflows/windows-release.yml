@@ -1,0 +1,46 @@
+name: Windows desktop build
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pyinstaller==6.16.0
+      - name: Verify content and tests
+        shell: pwsh
+        run: |
+          python -m unittest discover -p 'test_*.py' -v
+          python verify_assets.py
+      - name: Build Windows application
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean --windowed --onedir --name FE-Mechanical-Study --icon glasses.ico --add-data 'assets;assets' --add-data 'glasses.ico;.' main.py
+      - name: Package portable Windows ZIP
+        shell: pwsh
+        run: |
+          Copy-Item INSTALL_WINDOWS.txt dist/FE-Mechanical-Study/README.txt
+          Compress-Archive -Path dist/FE-Mechanical-Study -DestinationPath FE-Mechanical-Study-Windows.zip
+          Get-FileHash FE-Mechanical-Study-Windows.zip -Algorithm SHA256 | Format-List
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FE-Mechanical-Study-Windows
+          path: FE-Mechanical-Study-Windows.zip
+      - name: Publish tagged release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          gh release create "${{ github.ref_name }}" FE-Mechanical-Study-Windows.zip --generate-notes --title "FE Mechanical Study ${{ github.ref_name }}"
