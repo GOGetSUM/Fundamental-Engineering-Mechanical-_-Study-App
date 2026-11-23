@@ -1,0 +1,54 @@
+
+name: Build FE Mechanical Windows App
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          architecture: "x64"
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          $app = "FE_Mechanical_GitHub_AutoBuild"
+          if (Test-Path "$app/requirements.txt") {
+            python -m pip install -r "$app/requirements.txt"
+          } else {
+            python -m pip install pillow
+          }
+          python -m pip install pyinstaller
+
+      - name: Verify Pillow
+        run: python -c "from PIL import Image, ImageTk; print('Pillow OK')"
+
+      - name: Build Windows EXE
+        shell: pwsh
+        working-directory: FE_Mechanical_GitHub_AutoBuild
+        run: |
+          python -m PyInstaller --noconfirm --clean --windowed --onedir --name FEMechanicalStudyApp main.py
+
+      - name: Package application
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "FE_Mechanical_GitHub_AutoBuild/dist/FEMechanicalStudyApp/*" -DestinationPath "FEMechanicalStudyApp-Windows.zip"
+
+      - name: Upload downloadable build
+        uses: actions/upload-artifact@v4
+        with:
+          name: FEMechanicalStudyApp-Windows
+          path: FEMechanicalStudyApp-Windows.zip
