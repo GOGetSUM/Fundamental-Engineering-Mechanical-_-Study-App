@@ -1,0 +1,1 @@
+Creator release notice: This package contains textbook-derived question and solution images. Obtain commercial redistribution permission before uploading or selling. Attribution is not a license. No third-party content rights are granted by this package.
