@@ -66,12 +66,13 @@ class StudyApp:
         ttk.Label(bar, textvariable=self.status).pack(side="right")
         self.canvas = tk.Canvas(self.study_frame, bg="white", highlightthickness=0)
         self.zoom_bar = ttk.Frame(self.study_frame, padding=(14, 4))
-        ttk.Label(self.zoom_bar, text="Solution zoom:").pack(side="left")
+        ttk.Label(self.zoom_bar, text="Image zoom:").pack(side="left")
         ttk.Button(self.zoom_bar, text="−", width=4, command=lambda: self.change_zoom(1/1.25)).pack(side="left", padx=4)
         ttk.Label(self.zoom_bar, textvariable=self.zoom_label, width=6).pack(side="left")
         ttk.Button(self.zoom_bar, text="+", width=4, command=lambda: self.change_zoom(1.25)).pack(side="left", padx=4)
         ttk.Button(self.zoom_bar, text="Fit to Screen", command=self.reset_zoom).pack(side="left", padx=8)
         ttk.Label(self.zoom_bar, text="Mouse wheel to zoom · Drag to pan").pack(side="left", padx=8)
+        self.zoom_bar.pack(fill="x")
         self.canvas.pack(fill="both", expand=True, padx=14, pady=8)
         self.canvas.bind("<MouseWheel>", lambda e: self.change_zoom(1.25 if e.delta > 0 else 1/1.25))
         self.canvas.bind("<Button-4>", lambda e: self.change_zoom(1.25))
@@ -168,8 +169,8 @@ class StudyApp:
                 "Choose Exam 1, Exam 2, or both sets.",
                 "Turn on Shuffle to randomize question order.",
                 "Use Show solution to reveal the worked answer; Show problem returns to the question.",
-                "On solutions, zoom from 100% to 400% with + / − or the mouse wheel.",
-                "Drag an enlarged solution to pan; Fit to Screen resets zoom.",
+                "On problems and solutions, zoom from 100% to 400% with + / − or the mouse wheel.",
+                "Drag an enlarged problem or solution to pan; Fit to Screen resets zoom.",
                 "Use Previous / Next or the left and right arrow keys to navigate.",
                 "Use Space to switch between the problem and its solution.",
                 "Study offline after setup; no account or subscription required.",
@@ -459,7 +460,6 @@ class StudyApp:
             return
         self.mode = "problem"
         self.zoom = 1.0
-        self.zoom_bar.pack_forget()
         done, total = self.quiz.progress
         self.status.set(f"Exam {1 if n <= 110 else 2} · Problem {n:03} · {done}/{total}")
         self.answer_button.configure(state="normal")
@@ -478,18 +478,17 @@ class StudyApp:
     def show_solution(self):
         if self.quiz.current_question is not None:
             self.mode = "solution"
-            self.zoom_bar.pack(fill="x", before=self.canvas)
+            self.zoom = 1.0
             self.render()
 
     def show_problem(self):
         if self.quiz.current_question is not None:
             self.mode = "problem"
             self.zoom = 1.0
-            self.zoom_bar.pack_forget()
             self.render()
 
     def change_zoom(self, factor):
-        if self.mode != "solution":
+        if self.mode not in ("problem", "solution"):
             return
         self.zoom = max(1.0, min(4.0, self.zoom * factor))
         self.render()
@@ -499,11 +498,11 @@ class StudyApp:
         self.render()
 
     def start_pan(self, event):
-        if self.mode == "solution" and self.zoom > 1:
+        if self.mode in ("problem", "solution") and self.zoom > 1:
             self.canvas.scan_mark(event.x, event.y)
 
     def pan(self, event):
-        if self.mode == "solution" and self.zoom > 1:
+        if self.mode in ("problem", "solution") and self.zoom > 1:
             self.canvas.scan_dragto(event.x, event.y, gain=1)
 
     def render(self):
@@ -522,13 +521,10 @@ class StudyApp:
             img = src.convert("RGB")
         width = max(1, self.canvas.winfo_width()-30)
         height = max(1, self.canvas.winfo_height()-30)
-        zoom = self.zoom if self.mode == "solution" else 1.0
+        zoom = self.zoom
         self.zoom_label.set(f"{zoom:.0%}")
-        if self.mode == "solution":
-            scale = min(width / img.width, height / img.height, 1.0) * zoom
-            img = img.resize((max(1, round(img.width * scale)), max(1, round(img.height * scale))), Image.Resampling.LANCZOS)
-        else:
-            img.thumbnail((width, height), Image.Resampling.LANCZOS)
+        scale = min(width / img.width, height / img.height, 1.0) * zoom
+        img = img.resize((max(1, round(img.width * scale)), max(1, round(img.height * scale))), Image.Resampling.LANCZOS)
         self.image_ref = ImageTk.PhotoImage(img)
         cw, ch = self.canvas.winfo_width(), self.canvas.winfo_height()
         rw, rh = max(cw, img.width + 30), max(ch, img.height + 30)
